@@ -208,21 +208,32 @@
 */
 
   function onMessage(e) {
-    console.log(new Date().getTime() + ": " + e.data)
+    console.log(new Date().getTime() + ": " + e.data);
     var array = JSON.parse(e.data);
     if(array[0].channel=='ok_futureusd_orderinfo'){
       createTable(array); 
     }
 
-    if(array[0].channel=='ok_sub_futureusd_trades'){
+    if(array[0].channel=='ok_sub_futureusd_positions'){
       if(array[0].success){
-        console.log(array[0].success);
+        //console.log(array[0].success);
       }else if(array[0].data){
         for ( var i in array[0].data.positions) {
-          console.log(array[0].data.positions[i]);
-          var levier = array[0].data.positions[i].lever_rate;
-          var avgprice = array[0].data.positions[i].avgprice;
-          console.log(2/100/levier*avgprice+avgprice);
+          //console.log(array[0].data.positions[i]);
+          var levier = Number(array[0].data.positions[i].lever_rate);
+          var price = Number(array[0].data.positions[i].avgprice);
+          var hold_amount = Number(array[0].data.positions[i].hold_amount);
+          var forcedprice = Number(array[0].data.positions[i].forcedprice);
+          if(forcedprice<price){
+            type=3;
+          }else if(forcedprice>price){
+            type=4;
+          }
+          var p1 = (2/100/levier*price)+price;
+          //console.log(p1);
+          var p2 = p1+price*(levier-1)/levier*0.0003;
+          console.log("price: "+p2+" hold_amount: "+hold_amount+ " levier: "+levier+" old price: "+price+" type:"+type);
+          futureTrade("quarter", 100, p2, type, levier);
         }
       }
       
@@ -305,11 +316,12 @@
 	}
 
 	//合约下单
-	function futureTrade() {
+	function futureTrade(contract_type, amount, price, type, lever_rate) {
 		var sign = MD5("amount=1&api_key=" + okCoinWebSocket.api_key + 
-				"&contract_type=this_week&lever_rate=20&match_price=1&price=1.5&symbol=ltc_usd&type=0&secret_key=" + okCoinWebSocket.secret_key);
-		doSend("{'event': 'addChannel','channel':'ok_futureusd_trade','parameters': {'api_key': '"
-				+ okCoinWebSocket.api_key + "','sign': '" + sign + "','symbol': 'ltc_usd','contract_type': 'this_week','amount': '1','price': '1.5','type': '0','match_price': '1','lever_rate': '20'}}");
+				"&contract_type="+contract_type+"&lever_rate="+lever_rate+"&match_price=0&price="+price+"&symbol=btc_usd&type="+type+"&secret_key=" + okCoinWebSocket.secret_key);
+		console.log('trade');
+    doSend("{'event': 'addChannel','channel':'ok_futureusd_trade','parameters': {'api_key': '"
+				+ okCoinWebSocket.api_key + "','sign': '" + sign + "','symbol': 'btc_usd','contract_type':"+contract_type+",'amount':"+amount+",'price':"+price+",'type':"+type+",'match_price': '0','lever_rate':"+lever_rate+"}}");
 	}
 
 	//合约取消订单
