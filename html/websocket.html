@@ -253,6 +253,12 @@
   function createTable(array) {
     for ( var i in array[0].data.orders) {
       console.log(array[0].data.orders[i]);
+      var levier = array[0].data.orders[i].lever_rate;
+      var price = array[0].data.orders[i].price;
+      var p1 = (2/100/levier*price)+price;
+      console.log(p1);
+      var p2 = p1+price*(levier-1)/levier*0.0003;
+      console.log(p2);
     }
   }
 
