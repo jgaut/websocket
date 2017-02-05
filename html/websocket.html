@@ -10,11 +10,10 @@
 	var okCoinWebSocket = {};
 	okCoinWebSocket.init = function(uri, apiKey, secretKey) {
 		this.wsUri = uri;
-		this.apiKey = apiKey;
-		this.secretKey = secretKey;
+		this.api_key = apiKey;
+		this.secret_key = secretKey;
 		this.lastHeartBeat = new Date().getTime();
 		this.overtime = 8000;
-		
 		okCoinWebSocket.websocket = new WebSocket(okCoinWebSocket.wsUri);
 		
 		okCoinWebSocket.websocket.onopen = function(evt) {
@@ -44,7 +43,7 @@
 	function onOpen(evt) {
 		print("CONNECTED");
 
-		doSend("{'event':'addChannel','channel':'ok_sub_spotcny_btc_kline_1min'}");
+		//doSend("{'event':'addChannel','channel':'ok_sub_spotcny_btc_kline_1min'}");
 		//现货交易、合约交易测试
 		//tradeTest();
 		
@@ -145,6 +144,7 @@
 		//doSend("{'event':'addChannel','channel':'ok_sub_futureusd_btc_index'}");
 		//doSend("{'event':'addChannel','channel':'ok_sub_futureusd_ltc_index'}");
 		//////////////合约行情//////////////////////////////////////////////////////
+		
 	}
 	
 	function tradeTest(){
@@ -304,6 +304,8 @@
 
 	//合约个人信息
 	function futureUserInfo() {
+				console.log(okCoinWebSocket.api_key);
+		console.log(okCoinWebSocket.secret_key);
 		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&secret_key=" + okCoinWebSocket.secret_key);
 		doSend("{'event':'addChannel','channel':'ok_futureusd_userinfo','parameters' :{'api_key':'"
 				+ okCoinWebSocket.api_key + "','sign':'" + sign + "'}}");
@@ -339,10 +341,20 @@
 				+ okCoinWebSocket.api_key + "','sign':'" + sign + "'}}");
 	}
 
-	window.onload = okCoinWebSocket.init("wss://real.okcoin.cn:10440/websocket/okcoinapi", "#YOUR_API_KEY#", "#YOUR_SECRET_KEY#");
+	function connect(){
+		//console.log(document.getElementById("api_key").value);
+		//console.log(document.getElementById("secret").value);
+		okCoinWebSocket.init("wss://real.okcoin.com:10440/websocket/okcoinapi", document.getElementById("api_key").value, document.getElementById("secret").value);
+	}
+
+	
 </script>
 <body>
 <h2 id="th2">WebSocket Test</h2>
+API KEY: <input type="text" name="api_key" id="api_key"/><br><br>
+SECRET: <input type="text" name="secret" id="secret"/><br><br>
+ <button type="button" onclick="connect()">Connect!</button> <br><br>
+ <button type="button" onclick="futureUserInfo();futureTrades();futureOrderInfo();">Get!</button> <br><br>
 <div id="status"></div>
 <div id="output"></div>
 </body>
