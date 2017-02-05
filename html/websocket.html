@@ -144,7 +144,7 @@
 		//doSend("{'event':'addChannel','channel':'ok_sub_futureusd_btc_index'}");
 		//doSend("{'event':'addChannel','channel':'ok_sub_futureusd_ltc_index'}");
 		//////////////合约行情//////////////////////////////////////////////////////
-		
+		tradeTest();
 	}
 	
 	function tradeTest(){
@@ -158,53 +158,82 @@
 		
 		//合约交易
 		//futureTrade();
-		//futureCancelOrder(100);
+    futureOrderInfo(-1);
+		//futureCancelOrder(4394829882);
 		//futureUserInfo();
-		//futureOrderInfo(100);
+		//futureOrderInfo(-1);
 		//futureTrades();
 		//futureUserinfos();
-		//futurePositions();
+		futurePositions();
+    futureTrades();
+
 	}
 
 	function onClose(evt) {
 		print("DISCONNECTED");
 	}
+  /*
+  # Request
+{
+    'event':'addChannel',
+    'channel':'ok_sub_futureusd_positions',
+    'parameters':{
+        'api_key':'XXXX',
+        'sign':'XXXX'
+    }
+}
+# Response
+[{
+    "channel": "ok_sub_futureusd_positions",
+    "data": {
+        "positions": [{
+            "contract_id": "20160108116",
+            "contract_name": "LTC0108",
+            "avgprice": "3.488",
+            "balance": "0.40390746",
+            "bondfreez": "0",
+            "costprice": "3.488",
+            "eveningup": "1",
+            "forcedprice": "3.20008407",
+            "position": "1",
+            "profitreal": "-0.11729238",
+            "fixmargin": "0.28661508",
+            "hold_amount": "1",
+            "lever_rate": "10",
+            "position_id": "8166976"
+        }],
+        "symbol": "ltc_usd"
+    }
+}]
+*/
 
-	function onMessage(e) {
-		console.log(new Date().getTime() + ": " + e.data)
-		var array = JSON.parse(e.data);
+  function onMessage(e) {
+    console.log(new Date().getTime() + ": " + e.data)
+    var array = JSON.parse(e.data);
+    if(array[0].channel=='ok_futureusd_orderinfo'){
+      createTable(array); 
+    }
 
-		for (var i = 0; i < array.length; i++) {
-			for (var j = 0;j < array[i].length; j++) {
-				var isTrade = false;
-				var isCancelOrder = false;
-				
-				if (array[i][j] == 'ok_spotusd_trade' || array[i][j] == 'ok_spotcny_trade') {
-					isTrade = true;
-				} else if (array[i][j] == 'ok_spotusd_cancel_order'
-						|| array[i][j] == 'ok_spotcny_cancel_order') {
-					isCancelOrder = true;
-				}
-				
-				var order_id = array[i][j].order_id;
-				if (typeof (order_id) != 'undefined') {
-					if (isTrade) {
-						//下单成功 业务代码
-						console.log("orderId is  " + order_id);
-					} else if (isCancelOrder) {
-						//取消订单成功 业务代码
-						console.log("order  " + order_id + " is now cancled");
-					}
-				}
-			}
-		}
+    if(array[0].channel=='ok_sub_futureusd_trades'){
+      if(array[0].success){
+        console.log(array[0].success);
+      }else if(array[0].data){
+        for ( var i in array[0].data.positions) {
+          console.log(array[0].data.positions[i]);
+          var levier = array[0].data.positions[i].lever_rate;
+          var avgprice = array[0].data.positions[i].avgprice;
+          console.log(2/100/levier*avgprice+avgprice);
+        }
+      }
+      
+    }
+    
 
-		if (array.event == 'pong') {
-			okCoinWebSocket.lastHeartBeat = new Date().getTime();
-		} else {
-			createTable(array);
-		}
-	}
+    if (array.event == 'pong') {
+      okCoinWebSocket.lastHeartBeat = new Date().getTime();
+    }
+
+  }
 
 	function onError(evt) {
 		print('<span style="color: red;">ERROR:</span> ' + evt.data);
@@ -221,27 +250,11 @@
 		status.innerHTML += message + "<br/>";
 	}
 	
-	function createTable(array) {
-		var str = '<table id="tdata" border="1">\r\n<tr id="tr0">\r\n';
-		for ( var index in array[0]) {
-			str += '<th>' + index + '</th>\r\n';
-		}
-		str += '</tr>\r\n';
-
-		for ( var i = 0; i < array.length; i++) {
-			str += '<tr id="tr' + (i+1) + '">\r\n';
-			for ( var j in array[i]) {
-				str += '<td>' + JSON.stringify(array[i][j]) + '</td>\r\n';
-				//if(typeof array[i][j] == 'string' && array[i][j].indexOf("ok_") >= 0) {
-					//console.log(array[i][j]);
-				//}
-			}
-			str += '</tr>\r\n';
-		}
-		
-		str += '</table>\r\n';
-		document.getElementById("output").innerHTML = str;
-	}
+  function createTable(array) {
+    for ( var i in array[0].data.orders) {
+      console.log(array[0].data.orders[i]);
+    }
+  }
 
 	//现货下单
 	function spotTrade() {
@@ -295,11 +308,11 @@
 
 	//合约取消订单
 	function futureCancelOrder(orderId) {
-		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&contract_type=this_week&order_id=" + orderId
-				+ "&symbol=ltc_usd&secret_key=" + okCoinWebSocket.secret_key);
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&contract_type=quarter&order_id=" + orderId
+				+ "&symbol=btc_usd&secret_key=" + okCoinWebSocket.secret_key);
 		doSend("{'event': 'addChannel','channel': 'ok_futureusd_cancel_order','parameters': {'api_key': '"
-				+ okCoinWebSocket.api_key + "','sign': '" + sign + "','symbol': 'ltc_usd','order_id': '" + orderId
-				+ "','contract_type': 'this_week'}}");
+				+ okCoinWebSocket.api_key + "','sign': '" + sign + "','symbol': 'btc_usd','order_id': '" + orderId
+				+ "','contract_type': 'quarter'}}");
 	}
 
 	//合约个人信息
@@ -311,13 +324,13 @@
 				+ okCoinWebSocket.api_key + "','sign':'" + sign + "'}}");
 	}
 
-	//查询合约订单
+	//Pour connaitre l'ensemble des ordres en attente : orderId = -1
 	function futureOrderInfo(orderId) {
-		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&contract_type=this_week&current_page=1&order_id=" + orderId
-				+ "&page_length=1&symbol=ltc_usd&secret_key=" + okCoinWebSocket.secret_key + "&status=1");
+		var sign = MD5("api_key=" + okCoinWebSocket.api_key + "&contract_type=quarter&current_page=1&order_id=" + orderId
+				+ "&page_length=50&status=1&symbol=btc_usd&secret_key=" + okCoinWebSocket.secret_key);
 		doSend("{'event': 'addChannel','channel': 'ok_futureusd_orderinfo','parameters': {'api_key': '"
-				+ okCoinWebSocket.api_key + "','sign': '" + sign + "','symbol': 'ltc_usd','order_id': '" + orderId
-				+ "','contract_type': 'this_week','status':'1','current_page':'1','page_length':'1'}}");
+				+ okCoinWebSocket.api_key + "','sign': '" + sign + "','symbol': 'btc_usd','order_id': '" + orderId
+				+ "','contract_type': 'quarter','status':'1','current_page':'1','page_length':'50'}}");
 	}
 	
 	//订阅合约交易数据
@@ -345,6 +358,7 @@
 		//console.log(document.getElementById("api_key").value);
 		//console.log(document.getElementById("secret").value);
 		okCoinWebSocket.init("wss://real.okcoin.com:10440/websocket/okcoinapi", document.getElementById("api_key").value, document.getElementById("secret").value);
+
 	}
 
 	
@@ -354,7 +368,6 @@
 API KEY: <input type="text" name="api_key" id="api_key"/><br><br>
 SECRET: <input type="text" name="secret" id="secret"/><br><br>
  <button type="button" onclick="connect()">Connect!</button> <br><br>
- <button type="button" onclick="futureUserInfo();futureTrades();futureOrderInfo();">Get!</button> <br><br>
 <div id="status"></div>
 <div id="output"></div>
 </body>
