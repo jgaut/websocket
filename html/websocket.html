@@ -8,6 +8,7 @@
 <script type="text/javascript" src="MD5.js"></script>
 <script type="text/javascript">
 	var okCoinWebSocket = {};
+	var pourcentage=0.6;
 	okCoinWebSocket.init = function(uri, apiKey, secretKey) {
 		this.wsUri = uri;
 		this.api_key = apiKey;
@@ -158,19 +159,20 @@
 		
 		//合约交易
 		//futureTrade();
-    futureOrderInfo(-1);
+    	futureOrderInfo(-1);
 		//futureCancelOrder(4394829882);
 		//futureUserInfo();
 		//futureOrderInfo(-1);
 		//futureTrades();
 		//futureUserinfos();
 		futurePositions();
-    futureTrades();
+    	futureTrades();
 
 	}
 
 	function onClose(evt) {
 		print("DISCONNECTED");
+		connect();
 	}
   /*
   # Request
@@ -211,32 +213,31 @@
     console.log(new Date().getTime() + ": " + e.data);
     var array = JSON.parse(e.data);
     if(array[0].channel=='ok_futureusd_orderinfo'){
-      createTable(array); 
-    }
-
-    if(array[0].channel=='ok_sub_futureusd_positions'){
+      //createTable(array); 
+    }else if(array[0].channel=='ok_sub_futureusd_positions'){
       if(array[0].success){
         //console.log(array[0].success);
       }else if(array[0].data){
         for ( var i in array[0].data.positions) {
-          //console.log(array[0].data.positions[i]);
           var levier = Number(array[0].data.positions[i].lever_rate);
           var price = Number(array[0].data.positions[i].avgprice);
           var hold_amount = Number(array[0].data.positions[i].hold_amount);
           var forcedprice = Number(array[0].data.positions[i].forcedprice);
-          if(forcedprice<price){
+          var type;
+          if(forcedprice<=price){
             type=3;
           }else if(forcedprice>price){
             type=4;
           }
-          var p1 = (2/100/levier*price)+price;
-          //console.log(p1);
+          var p1 = (pourcentage/100/levier*price)+price;
           var p2 = p1+price*(levier-1)/levier*0.0003;
           console.log("price: "+p2+" hold_amount: "+hold_amount+ " levier: "+levier+" old price: "+price+" type:"+type);
           futureTrade("quarter", 100, p2, type, levier);
         }
       }
       
+    }else if(array[0].channel=='ok_sub_futureusd_trades'){
+
     }
     
 
@@ -266,7 +267,7 @@
       console.log(array[0].data.orders[i]);
       var levier = array[0].data.orders[i].lever_rate;
       var price = array[0].data.orders[i].price;
-      var p1 = (2/100/levier*price)+price;
+      var p1 = (pourcentage/100/levier*price)+price;
       console.log(p1);
       var p2 = p1+price*(levier-1)/levier*0.0003;
       console.log(p2);
